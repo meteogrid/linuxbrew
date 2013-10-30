@@ -14,10 +14,12 @@ class Python < Formula
   # --with-dtrace relies on CLT as dtrace hard-codes paths to /usr
   option 'with-dtrace', 'Experimental DTrace support (http://bugs.python.org/issue13405)' if MacOS::CLT.installed?
 
+  depends_on 'zlib'
+  depends_on 'libbzip2'
   depends_on 'pkg-config' => :build
   depends_on 'readline' => :recommended
   depends_on 'sqlite' => :recommended
-  depends_on 'gdbm' => :recommended
+  depends_on 'gdbm'
   depends_on 'openssl' if build.with? 'brewed-openssl'
   depends_on 'homebrew/dupes/tcl-tk' if build.with? 'brewed-tk'
   depends_on :x11 if build.with? 'brewed-tk' and Tab.for_name('tcl-tk').used_options.include?('with-x11')
@@ -35,22 +37,17 @@ class Python < Formula
     sha1 '9766254c7909af6d04739b4a7732cc29e9a48cb0'
   end
 
-  def patches
-    p = []
-    p << 'https://gist.github.com/paxswill/5402840/raw/75646d5860685c8be98858288d1772f64d6d5193/pythondtrace-patch.diff' if build.with? 'dtrace'
-    # Patch to disable the search for Tk.framework, since Homebrew's Tk is
-    # a plain unix build. Remove `-lX11`, too because our Tk is "AquaTk".
-    p << DATA if build.with? 'brewed-tk'
-    p
-  end
-
   def site_packages_cellar
-    prefix/"Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages"
+    prefix/"lib/python2.7/site-packages"
   end
 
   # The HOMEBREW_PREFIX location of site-packages.
   def site_packages
     HOMEBREW_PREFIX/"lib/python2.7/site-packages"
+  end
+
+  def patches
+    DATA
   end
 
   def install
@@ -66,7 +63,6 @@ class Python < Formula
              --enable-ipv6
              --datarootdir=#{share}
              --datadir=#{share}
-             --enable-framework=#{prefix}/Frameworks
            ]
 
     args << '--without-gcc' if ENV.compiler == :clang
@@ -78,41 +74,31 @@ class Python < Formula
       distutils_fix_stdenv
     end
 
-    if build.universal?
-      ENV.universal_binary
-      args << "--enable-universalsdk=/" << "--with-universal-archs=intel"
-    end
 
     # Allow sqlite3 module to load extensions: http://docs.python.org/library/sqlite3.html#f1
     inreplace("setup.py", 'sqlite_defines.append(("SQLITE_OMIT_LOAD_EXTENSION", "1"))', '') if build.with? 'sqlite'
-
-    # Allow python modules to use ctypes.find_library to find homebrew's stuff
-    # even if homebrew is not a /usr/local/lib. Try this with:
-    # `brew install enchant && pip install pyenchant`
-    inreplace "./Lib/ctypes/macholib/dyld.py" do |f|
-      f.gsub! 'DEFAULT_LIBRARY_FALLBACK = [', "DEFAULT_LIBRARY_FALLBACK = [ '#{HOMEBREW_PREFIX}/lib',"
-      f.gsub! 'DEFAULT_FRAMEWORK_FALLBACK = [', "DEFAULT_FRAMEWORK_FALLBACK = [ '#{HOMEBREW_PREFIX}/Frameworks',"
-    end
 
     if build.with? 'brewed-tk'
       ENV.append 'CPPFLAGS', "-I#{Formula.factory('tcl-tk').opt_prefix}/include"
       ENV.append 'LDFLAGS', "-L#{Formula.factory('tcl-tk').opt_prefix}/lib"
     end
 
-    system "./configure", *args
+    ENV.append 'CPPFLAGS', "-I#{Formula.factory('zlib').opt_prefix}/include"
+    ENV.append 'LDFLAGS', "-L#{Formula.factory('zlib').opt_prefix}/lib"
+    ENV.append 'CPPFLAGS', "-I#{Formula.factory('libbzip2').opt_prefix}/include"
+    ENV.append 'LDFLAGS', "-L#{Formula.factory('libbzip2').opt_prefix}/lib"
+    ENV.append 'CPPFLAGS', "-I#{Formula.factory('gdbm').opt_prefix}/include"
+    ENV.append 'LDFLAGS', "-L#{Formula.factory('gdbm').opt_prefix}/lib"
 
-    # HAVE_POLL is "broken" on OS X
-    # See: http://trac.macports.org/ticket/18376 and http://bugs.python.org/issue5154
-    inreplace 'pyconfig.h', /.*?(HAVE_POLL[_A-Z]*).*/, '#undef \1' unless build.with? "poll"
+    system "./configure", *args
 
     system "make"
 
     ENV.deparallelize # Installs must be serialized
     # Tell Python not to install into /Applications (default for framework builds)
-    system "make", "install", "PYTHONAPPSDIR=#{prefix}"
+    system "make", "install"
     # Demos and Tools
     (HOMEBREW_PREFIX/'share/python').mkpath
-    system "make", "frameworkinstallextras", "PYTHONAPPSDIR=#{share}/python"
     system "make", "quicktest" if build.include? 'quicktest'
 
     # Post-install, fix up the site-packages so that user-installed Python
@@ -145,7 +131,7 @@ class Python < Formula
     resource('pip').stage { system py.binary, *setup_args }
 
     # And now we write the distutils.cfg
-    cfg = prefix/"Frameworks/Python.framework/Versions/2.7/lib/python2.7/distutils/distutils.cfg"
+    cfg = prefix/"lib/python2.7/distutils/distutils.cfg"
     cfg.delete if cfg.exist?
     cfg.write <<-EOF.undent
       [global]
@@ -156,7 +142,7 @@ class Python < Formula
     EOF
 
     # Work-around for that bug: http://bugs.python.org/issue18050
-    inreplace "#{prefix}/Frameworks/Python.framework/Versions/2.7/lib/python2.7/re.py", 'import sys', <<-EOS.undent
+    inreplace "#{prefix}/lib/python2.7/re.py", 'import sys', <<-EOS.undent
       import sys
       try:
           from _sre import MAXREPEAT
@@ -168,7 +154,7 @@ class Python < Formula
       # Fixes setting Python build flags for certain software
       # See: https://github.com/mxcl/homebrew/pull/20182
       # http://bugs.python.org/issue3588
-      inreplace "#{prefix}/Frameworks/Python.framework/Versions/2.7/lib/python2.7/config/Makefile" do |s|
+      inreplace "#{prefix}/lib/python2.7/config/Makefile" do |s|
         s.change_make_var! "LINKFORSHARED",
           "-u _PyMac_Error $(PYTHONFRAMEWORKINSTALLDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)"
       end
@@ -190,10 +176,6 @@ class Python < Formula
       ldflags += " -isysroot #{MacOS.sdk_path}"
       # Same zlib.h-not-found-bug as in env :std (see below)
       args << "CPPFLAGS=-I#{MacOS.sdk_path}/usr/include"
-      # For the Xlib.h, Python needs this header dir with the system Tk
-      if build.without? 'brewed-tk'
-        cflags += " -I#{MacOS.sdk_path}/System/Library/Frameworks/Tk.framework/Versions/8.5/Headers"
-      end
     end
     args << cflags
     args << ldflags
@@ -203,7 +185,7 @@ class Python < Formula
     # superenv handles that cc finds includes/libs!
     inreplace "setup.py",
               "do_readline = self.compiler.find_library_file(lib_dirs, 'readline')",
-              "do_readline = '#{HOMEBREW_PREFIX}/opt/readline/lib/libhistory.dylib'"
+              "do_readline = '#{HOMEBREW_PREFIX}/opt/readline/lib/libhistory.so'"
   end
 
   def distutils_fix_stdenv()

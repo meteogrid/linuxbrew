@@ -11,7 +11,6 @@ class Libpng < Formula
     sha1 'fb685cfb8b37b883bf004ee7c9ca785d3435b155' => :snow_leopard
   end
 
-  keg_only :provided_pre_mountain_lion
 
   option :universal
 

@@ -34,6 +34,8 @@ class Boost < Formula
   option 'without-single', 'Disable building single-threading variant'
   option 'without-static', 'Disable building static library variant'
 
+  depends_on 'libbzip2'
+  depends_on 'zlib'
   depends_on :python => :recommended
   depends_on UniversalPython if build.universal? and build.with? "python"
   depends_on "icu4c" if build.with? 'icu'
@@ -97,12 +99,8 @@ class Boost < Formula
     # we specify libdir too because the script is apparently broken
     bargs = ["--prefix=#{prefix}", "--libdir=#{lib}"]
 
-    if build.with? 'icu'
-      icu4c_prefix = Formula.factory('icu4c').opt_prefix
-      bargs << "--with-icu=#{icu4c_prefix}"
-    else
-      bargs << '--without-icu'
-    end
+    icu4c_prefix = Formula.factory('icu4c').opt_prefix
+    bargs << "--with-icu=#{icu4c_prefix}"
 
     # Handle libraries that will not be built.
     without_libraries = []
@@ -151,6 +149,11 @@ class Boost < Formula
     end
 
     args << "address-model=32_64" << "architecture=x86" << "pch=off" if build.universal?
+
+    args << "-sBZIP2_INCLUDE=#{Formula.factory('libbzip2').prefix}/include"
+    args << "-sBZIP2_LIBPATH=#{Formula.factory('libbzip2').prefix}/lib"
+    args << "-sZLIB_INCLUDE=#{Formula.factory('zlib').prefix}/include"
+    args << "-sZLIB_LIBPATH=#{Formula.factory('zlib').prefix}/lib"
 
     system "./bootstrap.sh", *bargs
     system "./b2", *args

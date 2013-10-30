@@ -6,11 +6,9 @@ class Libffi < Formula
   mirror 'ftp://sourceware.org/pub/libffi/libffi-3.0.13.tar.gz'
   sha1 'f5230890dc0be42fb5c58fbf793da253155de106'
 
-  keg_only :provided_by_osx, "Some formulae require a newer version of libffi."
 
   def install
     ENV.deparallelize # https://github.com/mxcl/homebrew/pull/19267
-    ENV.universal_binary
     system "./configure", "--disable-debug", "--disable-dependency-tracking",
                           "--prefix=#{prefix}"
     system "make install"

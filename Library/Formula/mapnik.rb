@@ -8,20 +8,20 @@ class Mapnik < Formula
   head 'https://github.com/mapnik/mapnik.git'
 
   depends_on 'pkg-config' => :build
-  depends_on :python
-  depends_on :freetype
-  depends_on :libpng
+  depends_on 'python'
+  depends_on 'freetype'
+  depends_on 'libpng'
   depends_on 'libtiff'
   depends_on 'proj'
   depends_on 'icu4c'
   depends_on 'jpeg'
   depends_on 'boost'
-  depends_on 'gdal' => :optional
-  depends_on 'postgresql' => :optional
-  depends_on 'geos' => :optional
-  depends_on 'cairo' => :optional
+  depends_on 'gdal'
+  depends_on 'postgresql'
+  depends_on 'geos'
+  depends_on 'cairo'
 
-  depends_on 'py2cairo' if build.with? 'cairo'
+  depends_on 'py2cairo'
 
   def install
     icu = Formula.factory("icu4c").opt_prefix

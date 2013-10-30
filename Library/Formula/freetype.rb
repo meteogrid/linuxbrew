@@ -10,11 +10,7 @@ class Freetype < Formula
     sha1 '17f543980ff81f7173f5e6b2812c0582bbaade8c' => :mountain_lion
   end
 
-  keg_only :provided_pre_mountain_lion
-
-  option :universal
-
-  depends_on :libpng
+  depends_on 'libpng'
 
   def install
     ENV.universal_binary if build.universal?

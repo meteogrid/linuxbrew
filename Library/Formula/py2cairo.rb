@@ -7,10 +7,8 @@ class Py2cairo < Formula
 
   depends_on 'pkg-config' => :build
   depends_on 'cairo'
-  depends_on :x11
   depends_on :python
 
-  option :universal
 
   fails_with :llvm do
     build 2336
@@ -18,15 +16,8 @@ class Py2cairo < Formula
   end
 
   def install
-    # Python extensions default to universal but cairo may not be universal
-    ENV['ARCHFLAGS'] = "-arch #{MacOS.preferred_arch}" unless build.universal?
-
     python do
-      # waf miscompiles py2cairo on >= lion with HB python, linking the wrong
-      # Python Library.  So add a LINKFLAG that sets the path.
-      # https://github.com/mxcl/homebrew/issues/12893
-      # https://github.com/mxcl/homebrew/issues/14781
-      # https://bugs.freedesktop.org/show_bug.cgi?id=51544
+      ENV['CFLAGS'] = "-I#{python.prefix}/include/python2.7"
       ENV['LINKFLAGS'] = "-L#{python.libdir}"
       system "./waf", "configure", "--prefix=#{prefix}", "--nopyc", "--nopyo"
       system "./waf", "install"

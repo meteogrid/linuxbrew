@@ -7,9 +7,6 @@ class Pixman < Formula
 
   depends_on 'pkg-config' => :build
 
-  keg_only :provided_pre_mountain_lion
-
-  option :universal
 
   fails_with :llvm do
     build 2336

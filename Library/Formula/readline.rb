@@ -33,8 +33,6 @@ EOS
   def patches; DATA; end
 
   def install
-    # Always build universal, per https://github.com/mxcl/homebrew/issues/issue/899
-    ENV.universal_binary
     system "./configure", "--prefix=#{prefix}",
                           "--mandir=#{man}",
                           "--infodir=#{info}",

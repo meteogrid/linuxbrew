@@ -13,9 +13,7 @@ class Icu4c < Formula
     sha1 'cd9b8955fc41b46fa57c6f3697e4689eff02c7c3' => :snow_leopard
   end
 
-  keg_only "Conflicts; see: https://github.com/mxcl/homebrew/issues/issue/167"
 
-  option :universal
 
   def install
     ENV.universal_binary if build.universal?

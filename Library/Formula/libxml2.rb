@@ -25,7 +25,6 @@ class Libxml2 < Formula
     depends_on :libtool
   end
 
-  keg_only :provided_by_osx
 
   option :universal
 

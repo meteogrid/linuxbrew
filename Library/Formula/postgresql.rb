@@ -11,7 +11,8 @@ class Postgresql < Formula
   option 'enable-dtrace', 'Build with DTrace support'
 
   depends_on 'readline'
-  depends_on 'libxml2' if MacOS.version <= :leopard # Leopard libxml is too old
+  depends_on 'libxml2'
+  depends_on 'libxslt'
   depends_on 'ossp-uuid' => :recommended
   depends_on :python => :recommended
 
@@ -29,7 +30,7 @@ class Postgresql < Formula
   end
 
   def install
-    ENV.libxml2 if MacOS.version >= :snow_leopard
+    ENV.libxml2
 
     args = %W[
       --disable-debug
@@ -37,14 +38,14 @@ class Postgresql < Formula
       --datadir=#{share}/#{name}
       --docdir=#{doc}
       --enable-thread-safety
-      --with-bonjour
-      --with-gssapi
-      --with-krb5
-      --with-ldap
+      --without-gssapi
+      --without-krb5
+      --without-ldap
       --with-openssl
-      --with-pam
+      --without-pam
       --with-libxml
       --with-libxslt
+      --without-readline
     ]
 
     args << "--with-ossp-uuid" if build.with? 'ossp-uuid'
@@ -52,7 +53,7 @@ class Postgresql < Formula
     args << "--with-perl" unless build.include? 'no-perl'
     args << "--with-tcl" unless build.include? 'no-tcl'
     args << "--enable-dtrace" if build.include? 'enable-dtrace'
-
+    
     if build.with? 'ossp-uuid'
       ENV.append 'CFLAGS', `uuid-config --cflags`.strip
       ENV.append 'LDFLAGS', `uuid-config --ldflags`.strip
@@ -94,35 +95,6 @@ class Postgresql < Formula
     EOS
   end
 
-  plist_options :manual => "pg_ctl -D #{HOMEBREW_PREFIX}/var/postgres -l #{HOMEBREW_PREFIX}/var/postgres/server.log start"
-
-  def plist; <<-EOS.undent
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-    <dict>
-      <key>KeepAlive</key>
-      <true/>
-      <key>Label</key>
-      <string>#{plist_name}</string>
-      <key>ProgramArguments</key>
-      <array>
-        <string>#{opt_prefix}/bin/postgres</string>
-        <string>-D</string>
-        <string>#{var}/postgres</string>
-        <string>-r</string>
-        <string>#{var}/postgres/server.log</string>
-      </array>
-      <key>RunAtLoad</key>
-      <true/>
-      <key>WorkingDirectory</key>
-      <string>#{HOMEBREW_PREFIX}</string>
-      <key>StandardErrorPath</key>
-      <string>#{var}/postgres/server.log</string>
-    </dict>
-    </plist>
-    EOS
-  end
 end
 
 

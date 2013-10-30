@@ -18,7 +18,7 @@ class Gdal < Formula
   option 'enable-unsupported', "Allow configure to drag in any library it can find. Invoke this at your own risk."
 
   depends_on :python => :recommended
-  depends_on :libpng
+  depends_on 'libpng'
   depends_on 'jpeg'
   depends_on 'giflib'
   depends_on 'libtiff'
@@ -57,7 +57,7 @@ class Gdal < Formula
   end
 
   def png_prefix
-    MacOS.version >= :mountain_lion ? HOMEBREW_PREFIX/"opt/libpng" : MacOS::X11.prefix
+    HOMEBREW_PREFIX/"opt/libpng"
   end
 
   def get_configure_args
@@ -201,9 +201,6 @@ class Gdal < Formula
     # Needed by libdap.
     ENV.libxml2 if build.include? 'complete'
 
-    # Reset ARCHFLAGS to match how we build.
-    ENV['ARCHFLAGS'] = "-arch #{MacOS.preferred_arch}"
-
     # Fix hardcoded mandir: http://trac.osgeo.org/gdal/ticket/5092
     inreplace 'configure', %r[^mandir='\$\{prefix\}/man'$], ''
 
@@ -212,14 +209,6 @@ class Gdal < Formula
     system "make install"
 
     python do
-      # `python-config` may try to talk us into building bindings for more
-      # architectures than we really should.
-      if MacOS.prefer_64_bit?
-        ENV.append_to_cflags "-arch #{Hardware::CPU.arch_64_bit}"
-      else
-        ENV.append_to_cflags "-arch #{Hardware::CPU.arch_32_bit}"
-      end
-
       cd 'swig/python' do
         system python, "setup.py", "install", "--prefix=#{prefix}", "--record=installed.txt", "--single-version-externally-managed"
         bin.install Dir['scripts/*']
